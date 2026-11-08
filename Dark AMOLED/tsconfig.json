@@ -8,8 +8,7 @@
     "forceConsistentCasingInFileNames": true,
     "strict": true,
     "skipLibCheck": true,
-    "outDir": "dist",
-    "types": ["acode-plugin-types"]
+    "outDir": "dist"
   },
   "exclude": ["./dist/*/*"]
 }

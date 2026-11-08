@@ -191,8 +191,8 @@ class AcodePlugin {
         "dark-amoled-sidebar",
         "DarkAMOLED",
         (app) => {
-          const plasmaContainer = tag("div", {
-            className: "plasma-container",
+          const darkContainer = tag("div", {
+            className: "dark-container",
           });
           const heading = tag("h1", {
             textContent: "Add Image",
@@ -276,14 +276,14 @@ class AcodePlugin {
             id: "remove-image-btn",
           });
           removeImgBtn.addEventListener("click", this.removeImg.bind(this));
-          plasmaContainer.append(
+          darkContainer.append(
             heading,
             inputBox,
             blurBox,
             transparencyBox,
             removeImgBtn,
           );
-          app.append(plasmaContainer);
+          app.append(darkContainer);
         },
       );
 
