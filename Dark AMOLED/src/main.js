@@ -1186,7 +1186,7 @@ class AcodePlugin {
   }
 
   async destroy() {
-    sidebarApps.remove("dark-sidebar");
+    sidebarApps.remove("dark-amoled-sidebar");
     settings.off("update:editorTheme", this.onThemeChange);
     this.clearCodeMirrorBackgroundStyles();
 
