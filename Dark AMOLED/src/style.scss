@@ -1,0 +1,15 @@
+.ace-dark-amoled {
+	color: #FFFFFF; // default color
+	background-color: #070707; // background of editor container
+	
+	.ace_gutter { 
+		color: #3E4959; // Line number color
+		background-color: #070707;
+	}
+	
+	.ace_gutter-active-line {
+		font-weight: 700;
+		color: #178FFF;
+		background-color: #3A3A3A;
+	}
+}

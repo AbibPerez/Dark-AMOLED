@@ -762,6 +762,12 @@ class AcodePlugin {
 
     const cmEditor = document.querySelector(".cm-editor");
     const cmContent = cmEditor && cmEditor.querySelector(".cm-content");
+    const imageUrl = String(this.plugSettings.imageUrl || "").trim();
+
+    if (!imageUrl) {
+      this.clearCodeMirrorBackgroundStyles();
+      return;
+    }
 
     const useAnimatedOverlay = !!this.plugSettings.animatedGradientOverlay;
     const transparentColor = this.transparentColor(
@@ -773,33 +779,458 @@ class AcodePlugin {
       this.resolveCodeMirrorThemeBackground(),
       0.8,
     );
-    rootElement.classList.add(""); // cm-background
+    rootElement.classList.add("cm-background");
     rootElement.style.setProperty(
-      "", // cm-editor-size
+      "cm-editor-img",
+      useAnimatedOverlay
+        ? `linear-gradient(120deg, #179FFF, #175FFF, #3C2DB3, url("${imageUrl}")`
+        : `url("${imageUrl}")`,
+    );
+    rootElement.style.setProperty(
+      "--cm-editor-size",
       useAnimatedOverlay ? "240% 240%, cover" : "cover",
     );
     rootElement.style.setProperty(
-      "", // cm-editor-blend
+      "--cm-editor-blend",
       useAnimatedOverlay ? "soft-light, normal" : "normal",
     );
     rootElement.style.setProperty(
-      "", // cm-editor-animation
+      "--cm-editor-animation",
       useAnimatedOverlay
-        ? ""
-        : "",
+        ? "gradientShift 18s ease-in-out infinite alternate"
+        : "none",
     );
+    rootElement.style.setProperty("--cm-editor-overlay-bg", transparentColor);
     rootElement.style.setProperty(
-      "", // cm-editor-overlay-bg
-      transparentColor,
-    );
-    rootElement.style.setProperty(
-      "", // cm-editor-blur
+      "--cm-editor-blur",
       this.normalizeBlurValue(this.plugSettings.blurValue),
     );
     rootElement.style.setProperty(
-      "", // cm-gutter-overlay-bg
+      "--cm-gutter-overlay-bg",
       gutterTransparentColor,
     );
-    rootElement.style.setProperty("", "0px");
+    rootElement.style.setProperty("--cm-gutter-blur", "0px");
   }
+
+  clearCodeMirrorBackgroundStyles() {
+    const rootElement = document.documentElement;
+    if (!rootElement) return;
+
+    rootElement.classList.remove("cm-background");
+    rootElement.style.removeProperty("--cm-editor-image");
+    rootElement.style.removeProperty("--cm-editor-size");
+    rootElement.style.removeProperty("--cm-editor-blend");
+    rootElement.style.removeProperty("--cm-editor-animation");
+    rootElement.style.removeProperty("--cm-editor-overlay-bg");
+    rootElement.style.removeProperty("--cm-editor-blur");
+    rootElement.style.removeProperty("--cm-gutter-overlay-bg");
+    rootElement.style.removeProperty("--cm-gutter-blur");
+  }
+
+  applyEditorBackground({
+    editorElement,
+    contentElement,
+    scrollerElement,
+    gutterElements = [],
+  }) {
+    if (!editorElement) return;
+
+    const uniqueGutterElements = Array.from(
+      new Set(gutterElements.filter(Boolean)),
+    );
+
+    const imageUrl = String(this.plugSettings.imageUrl || "").trim();
+    if (!imageUrl) {
+      this.clearEditorBackgroundStyles(
+        editorElement,
+        scrollerElement,
+        uniqueGutterElements,
+      );
+      return;
+    }
+
+    const blur = this.normalizeBlurValue(this.blugSettings.blurValue);
+    const transColor = this.transColor(contentElement || editorElement);
+    const animatedOverlay = !!this.plugSettings.animatedGradientOverlay;
+
+    if (animatedOverlay) {
+      editorElement.style.backgroundImage = `linear-gradient(120deg, #179FFF, #175FFF, #3C2DB3, url("${imageUrl}")`;
+      editorElement.style.backgroundSize = "240% 240%, cover";
+      editorElement.style.backgroundBlendMode = "soft-light, normal";
+      editorElement.style.animation =
+        "gradientShift 18s ease-in-out infinite alternate";
+    } else {
+      editorElement.style.backgroundImage = `url("${imageUrl}")`;
+      editorElement.style.backgroundSize = "cover";
+      editorElement.style.backgroundBlendMode = "";
+      editorElement.style.animation = "";
+    }
+    editorElement.style.backgroundPosition = "center";
+    editorElement.style.backgroundRepeat = "no-repeat";
+
+    if (scrollerElement) {
+      scrollerElement.style.backgroundColor = transColor;
+      scrollerElement.style.backdropFilter = `blur(${blur})`;
+    }
+
+    uniqueGutterElements.forEach((gutterElement) => {
+      gutterElement.style.backgroundColor = transColor;
+      gutterElement.style.backdropFilter = `blur(${blur})`;
+    });
+  }
+
+  clearEditorBackgroundStyles(
+    editorElement,
+    scrollerElement,
+    gutterElements = [],
+  ) {
+    editorElement.style.backgroundImage = "";
+    editorElement.style.backgroundSize = "";
+    editorElement.style.backgroundPosition = "";
+    editorElement.style.backgroundRepeat = "";
+    editorElement.style.backgroundBlendMode = "";
+    editorElement.style.animation = "";
+
+    if (scrollerElement) {
+      scrollerElement.style.backgroundColor = "";
+      scrollerElement.style.backdropFilter = "";
+    }
+
+    gutterElements.forEach((gutterElement) => {
+      gutterElement.style.backgroundColor = "";
+      gutterElement.style.backdropFilter = "";
+    });
+  }
+
+  normalizeBlurValue(value) {
+    const input = String(value || "").trim();
+    if (!input) return "4px";
+
+    if (/^\d+(\.\d+)?$/.test(input)) {
+      return `${input}px`;
+    }
+
+    return input;
+  }
+
+  parseTransparency(value) {
+    const parsed = Number.parseFloat(value);
+    if (Number.isNaN(parsed)) return 0.4;
+    return Math.min(1, Math.max(0, parsed));
+  }
+
+  transparentColor(element, fallbackColor = "", alphaScale = 1) {
+    const backgroundColor =
+      this.resolveBackgroundColor(element) ||
+      fallbackColor ||
+      this.resolveCSSVarColor("--secondary-color") ||
+      "#2F2F2F";
+
+    const rgbValues = this.parseColorToRgb(backgroundColor) || [47, 47, 47];
+    const alpha = Math.min(
+      1,
+      Math.max(
+        0,
+        this.parseTransparency(this.plugSettings.transparency) * alphaScale,
+      ),
+    );
+
+    return `rgba(${rgbValues[0]}, ${rgbValues[1]}, ${rgbValues[2]}, ${alpha})`;
+  }
+
+  resolveCodeMirrorThemeBackground() {
+    const editorTheme = String(settings.get("editorTheme") || "")
+      .trim()
+      .toLowerCase();
+
+    if (
+      editorTheme === codeMirrorDarkThemeId ||
+      editorTheme === editorThemeName ||
+      editorTheme === legacyAceThemePath ||
+      editorTheme === "dark amoled" ||
+      editorTheme === "dark-amoled"
+    ) {
+      return "#2F2F2F";
+    }
+
+    return "";
+  }
+
+  resolveBackgroundColor(element) {
+    let current = element;
+    let depth = 0;
+
+    while (current && depth < 4) {
+      const comp = window.getComputedStyle(current).backgroundColor;
+      const rgb = this.parseColorToRgb(comp);
+      if (rgb) {
+        return comp;
+      }
+
+      current = current.parentElement;
+      depth += 1;
+    }
+
+    return "";
+  }
+
+  resolveCSSVarColor(variable) {
+    const value = window
+      .getComputedStyle(document.documentElement)
+      .getPropertyValue(variable)
+      .trim();
+
+    return value;
+  }
+
+  parseColorToRgb(color) {
+    const value = String(color || "")
+      .trim()
+      .toLowerCase();
+    if (!value || value === "transparent") {
+      return null;
+    }
+
+    if (value.startsWith("#")) {
+      const hex = value.slice(1);
+      if (hex.length === 3 || hex.length === 4) {
+        return [
+          Number.parseInt(hex[0] + hex[0], 16),
+          Number.parseInt(hex[1] + hex[1], 16),
+          Number.parseInt(hex[2] + hex[2], 16),
+        ];
+      }
+
+      if (hex.length === 6 || hex.length === 8) {
+        return [
+          Number.parseInt(hex.slice(0, 2), 16),
+          Number.parseInt(hex.slice(2, 4), 16),
+          Number.parseInt(hex.slice(4, 6), 16),
+        ];
+      }
+
+      return null;
+    }
+
+    const rgbMatch = value.match(/^rgba?\((.+)\)$/);
+    if (!rgbMatch) return null;
+
+    const ch = rgbMatch[1]
+      .replace(/\//g, " ")
+      .split(/[\s,]+/)
+      .filter(Boolean);
+
+    if (ch.length < 3) return null;
+
+    return [
+      this.toRgbByte(ch[0]),
+      this.toRgbByte(ch[1]),
+      this.toRgbByte(ch[2]),
+    ];
+  }
+
+  toRgbByte(ch) {
+    const value = String(ch || "").trim();
+    if (value.endsWith("%")) {
+      const percent = Number.parseFloat(value);
+      if (Number.isNaN(percent)) return 0;
+      return Math.max(0, Math.min(255, Math.round((percent / 100) * 255)));
+    }
+  }
+  onAnimationChange() {
+    const fileList = document.querySelector(".open-file-list");
+    if (fileList) {
+      if (this.plugSettings.fileTabAnimation) {
+        fileList.style.setProperty(
+          "--open-filelist-line-animation",
+          "changeColor 6s ease-in-out infinite alternate",
+        );
+        fileList.style.setProperty(
+          "--open-filelist-glow-animation",
+          "glowingEffect 2.2s ease-in-out infinite alternate",
+        );
+      } else {
+        fileList.style.setProperty("--open-filelist-line-animation", "");
+        fileList.style.setProperty("--open-filelist-glow-animation", "");
+      }
+    }
+
+    const floatingIcon = document.getElementById("quicktools-toggler");
+    if (floatingIcon) {
+      if (this.plugSettings.floatingBtnAnimation) {
+        floatingIcon.classList.remove("no_animation");
+        floatingIcon.style.setProperty(
+          "--floating-btn-animation",
+          "steam 20s linear infinite",
+        );
+      } else {
+        floatingIcon.style.setProperty("--floating-btn-animation", "");
+        floatingIcon.classList.add("no_animation");
+      }
+    }
+  }
+
+  createFancyAcode() {
+    const existingStyle = document.getElementById("fancyAcodeStyles");
+    if (existingStyle) {
+      existingStyle.remove();
+    }
+
+    const fancyStyling = document.createElement("style");
+    fancyStyling.id = "fancyAcodeStyles";
+    fancyStyling.textContent = `
+				.prompt{
+						background-color: transparent;
+						backdrop-filter: blur(${this.plugSettings.promptBlurValue ? this.plugSettings.promptBlurValue : this.plugSettings.fancyUniversalBlurValue});
+						border-color: var(--border-color);
+				}
+				.context-menu{
+						background-color: transparent;
+						backdrop-filter: blur(${this.plugSettings.contextMenuBlurValue ? this.plugSettings.contextMenuBlurValue : this.plugSettings.fancyUniversalBlurValue});
+						border-color: var(--border-color);
+				}
+				#palette{
+						background-color: transparent;
+						backdrop-filter: blur(${this.plugSettings.paletteBlurValue ? this.plugSettings.paletteBlurValue : this.plugSettings.fancyUniversalBlurValue});
+						border-color: var(--border-color);
+				}
+				#hints{
+						background-color: transparent;
+						backdrop-filter: blur(${this.plugSettings.paletteBlurValue ? this.plugSettings.paletteBlurValue : this.plugSettings.fancyUniversalBlurValue});
+						border-color: var(--border-color);
+				}
+				.cursor-menu{
+						background-color: transparent;
+						backdrop-filter: blur(${this.plugSettings.cursorMenuBlurValue ? this.plugSettings.cursorMenuBlurValue : this.plugSettings.fancyUniversalBlurValue});
+						border-color: var(--border-color);
+				}
+				.ace_dark.ace_editor.ace_autocomplete{
+						background-color: transparent;
+						backdrop-filter: blur(${this.plugSettings.aceCompletionBlurValue ? this.plugSettings.aceCompletionBlurValue : this.plugSettings.fancyUniversalBlurValue});
+						border-color: var(--border-color);
+				}
+				`;
+    document.head.append(fancyStyling);
+  }
+
+  get settingsObj() {
+    return {
+      list: [
+        {
+          key: "themeIcon",
+          text: "Enable Theme Icon",
+          checkbox: !!this.plugSettings.themeIcon,
+          info: `If set to "true" means checked, then it will add a some icon to acode and that will match Sweet Plasma schema. If set to "false" means unchecked then theme icon will not be applied`,
+        },
+        {
+          key: "fileTabAnimation",
+          text: "Enable File Tab animation",
+          checkbox: !!this.plugSettings.fileTabAnimation,
+          info: `If set to "true" means checked, then it will add a beautiful glowing effect to it. If set to "false" means unchecked then animation will not be applied`,
+        },
+        {
+          key: "floatingBtnAnimation",
+          text: "Enable Quicktools toggler anination",
+          checkbox: !!this.plugSettings.floatingBtnAnimation,
+          info: `If set to "true" means checked, then it will add a beautiful glowing effect to it. If set to "false" means unchecked then animation will not be applied`,
+        },
+        {
+          key: "fancyAcode",
+          text: "Enable Fancy Acode",
+          checkbox: !!this.plugSettings.fancyAcode,
+          info: `If set to "true" means checked, then acode components will be transparent and with gauzy blurry effect. If set to "false" means unchecked then it will be normal default design`,
+        },
+        {
+          key: "fancyUniversalBlurValue",
+          text: "Blur Value for fancy design",
+          value: this.plugSettings.fancyUniversalBlurValue,
+          prompt: "Blur Value for fancy design",
+          promptType: "text",
+        },
+        {
+          key: "animatedGradientOverlay",
+          text: "Enable Gradient Overlay",
+          checkbox: !!this.plugSettings.animatedGradientOverlay,
+          info: "Adds a subtle animated gradient layer over editor background image.",
+        },
+      ],
+      cb: (key, value) => {
+        this.plugSettings[key] = value;
+        settings.update();
+
+        if (this.plugSettings.themeIcon) {
+          document.head.append(this.$iconsStyle);
+        } else {
+          this.$iconsStyle.remove();
+        }
+
+        if (this.plugSettings.fancyAcode) {
+          this.createFancyAcode();
+        } else {
+          const existingStyle = document.getElementById("fancyAcodeStyles");
+          if (existingStyle) {
+            existingStyle.remove();
+          }
+        }
+
+        this.onAnimationChange();
+        this.updateUiWithSettings();
+
+        acode.alert("Warning", "Please restart Acode");
+      },
+    };
+  }
+
+  get plugSettings() {
+    return settings.value[plugin.id];
+  }
+
+  async destroy() {
+    sidebarApps.remove("dark-sidebar");
+    settings.off("update:editorTheme", this.onThemeChange);
+    this.clearCodeMirrorBackgroundStyles();
+
+    if (
+      this.isCodeMirror &&
+      editorThemes &&
+      typeof editorThemes.unregister === "function"
+    ) {
+      editorThemes.unregister(codeMirrorDarkThemeId);
+    }
+
+    if (this.$iconsStyle) {
+      this.$iconsStyle.remove();
+    }
+
+    if (this.$customStyle) {
+      this.$customStyle.remove();
+    }
+
+    const fancyStyles = document.getElementById("fancyAcodeStyles");
+    if (fancyStyles) {
+      fancyStyles.remove();
+    }
+
+    delete settings.value[plugin.id];
+    settings.update(true);
+  }
+}
+
+if (window.acode) {
+  const acodePlugin = new AcodePlugin();
+  acode.setPluginInit(
+    plugin.id,
+    async (baseUrl, $page, { cacheFileUrl, cacheFile }) => {
+      if (!baseUrl.endsWith("/")) {
+        baseUrl += "/";
+      }
+      acodePlugin.baseUrl = baseUrl;
+      await acodePlugin.init($page, cacheFile, cacheFileUrl);
+    },
+    acodePlugin.settingsObj,
+  );
+
+  acode.setPluginUnmount(plugin.id, () => {
+    acodePlugin.destroy();
+  });
 }
