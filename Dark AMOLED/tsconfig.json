@@ -11,5 +11,6 @@
     "outDir": "dist",
     "types": ["acode-plugin-types"]
   },
+  "include": ["src/*/*"],
   "exclude": ["./dist/*/*"]
 }

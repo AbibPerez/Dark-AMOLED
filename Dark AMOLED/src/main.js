@@ -1,4 +1,5 @@
 import plugin from "./plugin.json";
+import icons from "./icons.css";
 import style from "./style.scss";
 import customStyle from "./customStyles.scss";
 
@@ -66,11 +67,11 @@ const palette = {
   active_color: "#179FFF",
   active_text: "#309BFF",
   active_icon: "#2E2E2E",
-  active_line: "#3E4959",
+  active_line: "#2A3A4A",
 
   border: "#121212",
 
-  shadow: "#5C5C5C40",
+  shadow: "#1A1A1A40",
 
   button_active: "#8F7CFF",
   button_bg: "#8F7CFF",
@@ -78,7 +79,7 @@ const palette = {
 
   error_text: "#ED0924",
 
-  primary: "#070707",
+  primary: "#020202",
   primary_text: "#FFFFFF",
 
   secondary: "#000000",
@@ -98,9 +99,9 @@ const palette = {
 
   // Editor
   text: "#DFE7F2",
-  muted: "#556273",
+  muted: "#6A7AA2",
   key_word: "#5C8FF3",
-  syntax: "#FFD700",
+  syntax: "#A4B2CC",
   property: "#30CFF2",
   num: "#F3B16A",
   str: "#77F2AC",
@@ -139,8 +140,10 @@ class AcodePlugin {
 
   async init() {
     try {
-      this.$iconsStyle = <style textContent={icons}></style>;
-      this.$customStyle = <style textContent={customStyle}></style>;
+      this.$iconsStyle = document.createElement("style");
+      this.$iconsStyle.textContent = icons;
+      this.$customStyle = document.createElement("style");
+      this.$customStyle.textContent = customStyle;
       document.head.append(this.$iconsStyle, this.$customStyle);
 
       const a = new ThemeBuilder("Dark AMOLED", "dark", "free");
@@ -242,7 +245,7 @@ class AcodePlugin {
           const transparencyBox = tag("div", {
             className: "transparency-box",
           });
-          const transprancyLabel = tag("label", {
+          const transparencyLabel = tag("label", {
             textContent: "Transparency",
             className: "transparency-input-lbl",
           });
@@ -267,7 +270,7 @@ class AcodePlugin {
               : "0.4",
           });
           transparencyBox.append(
-            transprancyLabel,
+            transparencyLabel,
             transparencyInputField,
             transparencyValueLbl,
           );
@@ -289,16 +292,16 @@ class AcodePlugin {
 
       const acodeXController = acode.require("acodex");
       if (acodeXController) {
-        const axThemeName = "DarkAMOLED";
-        const schema = {
+        const acodeXThemeName = "DarkAMOLED";
+        const colorSchema = {
           background: palette.secondary,
           foreground: palette.secondary_text,
-          cursor: "#FFFFFF",
-          cursorAccent: "#00000000",
-          selectionBackground: "#FFFFFF25",
-          black: "#070707",
+          cursor: "#179FFF",
+          cursorAccent: "#000000",
+          selectionBackground: "#00000000",
+          black: "#020202",
           blue: "#179FFF",
-          brightBlack: "#2A2A2A",
+          brightBlack: "#1A1A1A",
           brightBlue: "#175FFF",
           brightCyan: "#02F3E0",
           brightGreen: "#38FF6A",
@@ -324,7 +327,7 @@ class AcodePlugin {
           operator: palette.oper,
           invalid: palette.error,
         };
-        acodeXController.addTheme(axThemeName, schema);
+        acodeXController.addTheme(acodeXThemeName, colorSchema);
       }
 
       this.applyEditorTheme(settings.get("editorTheme"));
@@ -343,8 +346,8 @@ class AcodePlugin {
 
       this.onAnimationChange();
     } catch (error) {
-      console.error(error);
-      acode.alert("Warning", "Please restart Acode");
+      console.log(error);
+      acode.alert(error, "Error loading.", "Please restart Acode");
     }
   }
 
@@ -596,7 +599,7 @@ class AcodePlugin {
               borderLeftWidth: "2px",
             },
             ".cm-selectionBackground, .cm-content ::selection": {
-              backgroundColor: "#1F1F2F",
+              backgroundColor: "#070707",
             },
             ".cm-gutters": {
               backgroundColor: palette.primary,
@@ -612,16 +615,16 @@ class AcodePlugin {
               color: palette.key_word,
             },
             ".cm-matchingBracket, .cm-nonmatchingBracket": {
-              backgroundColor: "#1F1F2F",
+              backgroundColor: "#2F2F4F",
               color: palette.syntax,
               fontWeight: "bold",
             },
             ".cm-tooltip": {
-              backgroundColor: "#2F2F2F",
-              border: "1px solid #3F3F54",
+              backgroundColor: "#020202",
+              border: "1px solid #0F0F0F",
             },
             ".cm-tooltip-autocomplete > ul > li[aria-selected]": {
-              backgroundColor: "#FFFFFF26",
+              backgroundColor: "#0F0F0F",
             },
 
             ".cm-searchMatch": {
@@ -732,6 +735,70 @@ class AcodePlugin {
       this.updateUiWithSettings();
     }
   }
+
+  async triggerFolderBtnEvent() {
+    const imageInput = document.createElement("input");
+    imageInput.type = "file";
+    imageInput.accept = "image/*";
+    imageInput.style.display = "none";
+    const self = this;
+
+    imageInput.addEventListener("change", async function () {
+      const selectedFile = imageInput.files[0];
+      if (selectedFile) {
+        const reader = new FileReader();
+
+        reader.onload = async function (event) {
+          const imageDataURI = event.target.result;
+          const blob = self.dataURItoBlob(imageDataURI);
+          const bgImg = fs(window.DATA_STORAGE + baseBgImgName);
+          if (await bgImg.exists()) {
+            await bgImg.delete();
+          }
+          await fs(window.DATA_STORAGE).createFile(baseBgImgName, blob);
+
+          const urlOfImage = await toInternalUrl(
+            window.DATA_STORAGE + baseBgImgName,
+          );
+          const imageUrl = urlOfImage ? urlOfImage : imageDataURI;
+
+          const urlInput = document.querySelector("#image-url");
+          if (urlInput) {
+            urlInput.value = imageUrl;
+          }
+
+          self.plugSettings.imageUrl = imageUrl;
+          settings.update();
+          self.updateUiWithSettings();
+        };
+        reader.readAsDataURL(selectedFile);
+      }
+      document.body.removeChild(imageInput);
+    });
+
+    document.body.appendChild(imageInput);
+    imageInput.click();
+  }
+
+  dataURItoBlob(dataURI) {
+    const byteString = atob(dataURI.split(",")[1]);
+    const mimeString = dataURI.split(",")[0].split(":")[1].split(";")[0];
+    const ab = new ArrayBuffer(byteString.length);
+    const ia = new Uint8Array(ab);
+    for (let i = 0; i < byteString.length; i++) {
+      ia[i] = byteString.charCodeAt(i);
+    }
+    return new Blob([ab], { type: mimeString });
+  }
+
+  removeImg() {
+    this.plugSettings.imageUrl = "";
+    this.plugSettings.blurValue = "4px";
+    this.plugSettings.transparency = "0.4";
+    settings.update();
+    this.updateUiWithSettings();
+  }
+
   updateUiWithSettings() {
     if (this.isCodeMirror) {
       this.updateCodeMirrorUiWithSettings();

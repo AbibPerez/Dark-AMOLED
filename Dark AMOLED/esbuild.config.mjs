@@ -54,6 +54,7 @@ const buildConfig = {
   color: true,
   outdir: "dist",
   plugins: [zipPlugin],
+  loader: { ".js": "jsx" },
 };
 
 (async function () {

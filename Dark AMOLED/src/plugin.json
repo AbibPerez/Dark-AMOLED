@@ -18,7 +18,7 @@
     "high-contrast"
   ],
   "license": "MIT",
-  "main": "dist/main.js",
+  "main": "main.js",
   "minVersionCode": 290,
   "name": "Dark AMOLED",
   "price": 0,
