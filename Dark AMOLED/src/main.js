@@ -104,6 +104,7 @@ const palette = {
   syntax: "#A4B2CC",
   property: "#30CFF2",
   num: "#F3B16A",
+  bracks: "#FFE100",
   str: "#77F2AC",
   oper: "#179FFF",
   bools: "#8979F2",
@@ -498,15 +499,25 @@ class AcodePlugin {
       // Punctuation & brackets
       {
         tag: [
-          t.punctuation,
           t.bracket,
           t.paren,
           t.squareBracket,
           t.brace,
-          t.separator,
         ],
+        color: palette.bracks,
+      },
+
+      {
+        tag:
+          t.punctuation,
+          color: palette.oper,
+      },
+
+      {
+        tag: t.separator,
         color: palette.syntax,
       },
+      
 
       // Markup (HTML/JSX/XML tags & attributes)
       { tag: t.tagName, color: palette.syntax },
@@ -539,7 +550,7 @@ class AcodePlugin {
       },
       {
         tag: [t.quote, t.monospace],
-        color: palette.property,
+        color: palette.muted,
       },
 
       // Meta / preprocessor / decorators
